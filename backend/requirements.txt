@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-multipart
+openai-whisper
+torch
+opencv-python
+mediapipe==0.10.9
+librosa
+numpy
+textblob
