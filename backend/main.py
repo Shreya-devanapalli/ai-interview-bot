@@ -13,6 +13,15 @@ from analysis.audio_analysis import analyze_audio
 from feedback.feedback_generator import generate_feedback
 from utils.convert_audio import convert_webm_to_wav
 
+from fastapi import Depends
+from sqlalchemy.orm import Session
+
+from database.db import get_db
+from database.crud import (
+    create_interview,
+    create_analysis_result
+)
+
 # ---------------- APP SETUP ----------------
 
 app = FastAPI()
@@ -80,9 +89,18 @@ def run_analysis(audio_path: Path, eye_contact_score: int):
 # ---------------- API ENDPOINT ----------------
 
 @app.post("/analyze")
+@app.post("/analyze")
 async def analyze_interview(
     audio: UploadFile = File(...),
-    eye_contact_score: int = Form(5)
+    eye_contact_score: int = Form(5),
+
+    job_role: str = Form("General"),
+
+    question: str = Form(""),
+
+    answer: str = Form(""),
+
+    db: Session = Depends(get_db)
 ):
     """
     Receives:
@@ -98,9 +116,44 @@ async def analyze_interview(
 
     # 🔥 Run heavy work in threadpool (no event loop blocking)
     result = await run_in_threadpool(
-        run_analysis,
-        audio_path,
-        eye_contact_score
+    run_analysis,
+    audio_path,
+    eye_contact_score
+    )
+    
+    # ---------------- SAVE INTERVIEW ----------------
+
+    interview = create_interview(
+        db=db,
+        user_id=None,
+        job_role=job_role,
+        question=question,
+        answer=answer,
+        transcript=result["transcript"],
+        audio_path=str(audio_path),
+        duration=None
+    )
+
+    # ---------------- SAVE ANALYSIS ----------------
+
+    create_analysis_result(
+        db=db,
+        interview_id=interview.id,
+
+        word_count=result["analysis"]["text"]["word_count"],
+        sentiment=result["analysis"]["text"]["sentiment"],
+
+        subjectivity=result["analysis"]["text"]["subjectivity"],
+
+        speaking_rate=result["analysis"]["audio"]["speaking_rate"],
+
+        energy=result["analysis"]["audio"]["energy"],
+
+        eye_contact_score=eye_contact_score,
+
+        overall_score=result["score"],
+
+        feedback=result["feedback"]
     )
 
     return result
