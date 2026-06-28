@@ -2,7 +2,11 @@ import { useRef, useState } from "react";
 import axios from "axios";
 import EyeContactTracker from "./EyeContactTracker";
 
-export default function Recorder({ onResult }) {
+export default function Recorder({
+  onResult,
+  role,
+  question
+}) {
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
 
@@ -36,6 +40,9 @@ export default function Recorder({ onResult }) {
           const formData = new FormData();
           formData.append("audio", blob);
           formData.append("eye_contact_score", eyeContactScore);
+          formData.append("job_role", role);
+
+          formData.append("question", question);
 
           const response = await axios.post(
             "http://127.0.0.1:8000/analyze",

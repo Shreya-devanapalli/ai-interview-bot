@@ -5,7 +5,6 @@ import QuestionCard from "./components/QuestionCard";
 import Feedback from "./components/Feedback";
 import RoleSelector from "./components/RoleSelector";
 import HistoryPanel from "./components/HistoryPanel";
-import { saveHistory } from "./utils/saveHistory";
 
 function App() {
   const [role, setRole] = useState("HR");
@@ -20,7 +19,6 @@ function App() {
 
   const handleResult = (data) => {
     setResult(data);
-    saveHistory({ role, score: data.score });
   };
 
   return (
@@ -31,7 +29,13 @@ function App() {
       <button onClick={generateQuestion}>Generate Question</button>
 
       {question && <QuestionCard question={question} />}
-      {question && <Recorder onResult={handleResult} />}
+      {question && (
+      <Recorder
+      onResult={handleResult}
+      role={role}
+      question={question}
+      />
+      )}
       {result && <Feedback data={result} />}
 
       <HistoryPanel />

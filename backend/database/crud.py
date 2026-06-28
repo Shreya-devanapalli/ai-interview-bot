@@ -58,4 +58,11 @@ def create_analysis_result(
     db.commit()
     db.refresh(analysis)
 
+def get_all_interviews(db: Session):
+    return (
+        db.query(Interview)
+        .order_by(Interview.created_at.desc())
+        .all()
+    )
+
     return analysis
