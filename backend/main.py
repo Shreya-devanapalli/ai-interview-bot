@@ -1,6 +1,8 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
+from database.db import engine
+from database.models import Base
 from pathlib import Path
 import tempfile
 import uuid
@@ -14,6 +16,7 @@ from utils.convert_audio import convert_webm_to_wav
 # ---------------- APP SETUP ----------------
 
 app = FastAPI()
+Base.metadata.create_all(bind=engine)
 
 # ✅ CORS (required for React)
 app.add_middleware(

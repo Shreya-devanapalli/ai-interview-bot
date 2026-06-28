@@ -1,6 +1,8 @@
 fastapi
 uvicorn
 python-multipart
+
+# AI
 openai-whisper
 torch
 opencv-python
@@ -8,3 +10,17 @@ mediapipe==0.10.9
 librosa
 numpy
 textblob
+
+# Database
+sqlalchemy
+psycopg2-binary
+
+# Environment variables
+python-dotenv
+
+# Authentication
+python-jose[cryptography]
+passlib[bcrypt]
+
+# Validation
+email-validator

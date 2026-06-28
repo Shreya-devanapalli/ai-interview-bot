@@ -1,7 +1,22 @@
-venv/
-__pycache__/
+# Python
+backend/.venv/
+backend/__pycache__/
+**/__pycache__/
 *.pyc
-node_modules/
-.env
-*.wav
-*.webm
+
+# Environment variables
+backend/.env
+
+# Node
+frontend/interview-ui/node_modules/
+
+# Build files
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
