@@ -1,17 +1,15 @@
+from routers.interview import router as interview_router
+
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
+
 from database.db import engine
 from database.models import Base
+
 from pathlib import Path
 import tempfile
 import uuid
-
-from analysis.speech_to_text import transcribe_audio
-from analysis.text_analysis import analyze_text
-from analysis.audio_analysis import analyze_audio
-from feedback.feedback_generator import generate_feedback
-from utils.convert_audio import convert_webm_to_wav
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
@@ -19,13 +17,15 @@ from sqlalchemy.orm import Session
 from database.db import get_db
 from database.crud import (
     create_interview,
-    create_analysis_result,
-    get_all_interviews
+    create_analysis_result
 )
+
+from services.analysis_service import run_analysis
 
 # ---------------- APP SETUP ----------------
 
 app = FastAPI()
+app.include_router(interview_router)
 Base.metadata.create_all(bind=engine)
 
 # ✅ CORS (required for React)
@@ -44,73 +44,7 @@ app.add_middleware(
 BASE_DIR = Path(tempfile.gettempdir()) / "ai_interview_bot"
 BASE_DIR.mkdir(exist_ok=True)
 
-# ---------------- ANALYSIS LOGIC ----------------
 
-def run_analysis(audio_path: Path, eye_contact_score: int):
-    """
-    Stable, CPU-safe analysis:
-    - Convert WebM → WAV
-    - Whisper transcription
-    - Text + audio confidence analysis
-    - Eye-contact score comes from frontend
-    """
-
-    # 🔑 Convert audio first (CRITICAL)
-    wav_path = convert_webm_to_wav(audio_path)
-
-    # Transcription
-    transcript = transcribe_audio(str(wav_path))
-
-    # Analysis
-    text_result = analyze_text(transcript)
-    audio_result = analyze_audio(str(wav_path))
-
-    video_result = {
-        "eye_contact_score": eye_contact_score
-    }
-
-    # Feedback + scoring
-    feedback_data = generate_feedback(
-        text_result,
-        audio_result,
-        video_result
-    )
-
-    return {
-        "transcript": transcript,
-        "analysis": {
-            "text": text_result,
-            "audio": audio_result,
-            "video": video_result
-        },
-        "feedback": feedback_data["remarks"],
-        "score": feedback_data["score"]
-    }
-
-@app.get("/interviews")
-def get_interviews(
-    db: Session = Depends(get_db)
-):
-    interviews = get_all_interviews(db)
-
-    results = []
-
-    for interview in interviews:
-
-        score = None
-
-        if interview.analysis_result:
-            score = interview.analysis_result.overall_score
-
-        results.append({
-            "id": interview.id,
-            "job_role": interview.job_role,
-            "score": score,
-            "created_at": interview.created_at,
-            "transcript": interview.transcript
-        })
-
-    return results
 # ---------------- API ENDPOINT ----------------
 
 @app.post("/analyze")
