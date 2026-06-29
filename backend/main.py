@@ -28,6 +28,7 @@ app = FastAPI()
 app.include_router(interview_router)
 Base.metadata.create_all(bind=engine)
 
+
 # ✅ CORS (required for React)
 app.add_middleware(
     CORSMiddleware,
@@ -40,79 +41,3 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Temporary directory for uploaded audio
-BASE_DIR = Path(tempfile.gettempdir()) / "ai_interview_bot"
-BASE_DIR.mkdir(exist_ok=True)
-
-
-# ---------------- API ENDPOINT ----------------
-
-@app.post("/analyze")
-@app.post("/analyze")
-async def analyze_interview(
-    audio: UploadFile = File(...),
-    eye_contact_score: int = Form(5),
-
-    job_role: str = Form("General"),
-
-    question: str = Form(""),
-
-    answer: str = Form(""),
-
-    db: Session = Depends(get_db)
-):
-    """
-    Receives:
-    - audio (webm) from frontend
-    - eye_contact_score (0–10) computed in browser
-    """
-
-    uid = uuid.uuid4().hex
-    audio_path = BASE_DIR / f"{uid}_audio.webm"
-
-    # Save uploaded audio
-    audio_path.write_bytes(await audio.read())
-
-    # 🔥 Run heavy work in threadpool (no event loop blocking)
-    result = await run_in_threadpool(
-    run_analysis,
-    audio_path,
-    eye_contact_score
-    )
-    
-    # ---------------- SAVE INTERVIEW ----------------
-
-    interview = create_interview(
-        db=db,
-        user_id=None,
-        job_role=job_role,
-        question=question,
-        answer=answer,
-        transcript=result["transcript"],
-        audio_path=str(audio_path),
-        duration=None
-    )
-
-    # ---------------- SAVE ANALYSIS ----------------
-
-    create_analysis_result(
-        db=db,
-        interview_id=interview.id,
-
-        word_count=result["analysis"]["text"]["word_count"],
-        sentiment=result["analysis"]["text"]["sentiment"],
-
-        subjectivity=result["analysis"]["text"]["subjectivity"],
-
-        speaking_rate=result["analysis"]["audio"]["speaking_rate"],
-
-        energy=result["analysis"]["audio"]["energy"],
-
-        eye_contact_score=eye_contact_score,
-
-        overall_score=result["score"],
-
-        feedback=result["feedback"]
-    )
-
-    return result
