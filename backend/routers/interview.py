@@ -17,12 +17,14 @@ import uuid
 from database.db import get_db
 
 from database.crud import (
-    get_all_interviews,
+    get_user_interviews,
     create_interview,
     create_analysis_result
 )
 
 from services.analysis_service import run_analysis
+from auth.dependencies import get_current_user
+from database.models import User
 
 router = APIRouter(
     prefix="",
@@ -31,9 +33,6 @@ router = APIRouter(
 
 BASE_DIR = Path(tempfile.gettempdir()) / "ai_interview_bot"
 BASE_DIR.mkdir(exist_ok=True)
-
-
-@router.get("/interviews")
 
 
 @router.post("/analyze")
@@ -47,8 +46,10 @@ async def analyze_interview(
 
     answer: str = Form(""),
 
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+    ):
+
     """
     Receives:
     - audio (webm) from frontend
@@ -72,7 +73,7 @@ async def analyze_interview(
 
     interview = create_interview(
         db=db,
-        user_id=None,
+        user_id=current_user.id,
         job_role=job_role,
         question=question,
         answer=answer,
@@ -104,11 +105,17 @@ async def analyze_interview(
     )
 
     return result
+
+@router.get("/interviews")
 def get_interviews(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
 
-    interviews = get_all_interviews(db)
+    interviews = get_user_interviews(
+    db,
+    current_user.id
+)
 
     results = []
 

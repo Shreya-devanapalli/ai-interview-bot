@@ -57,6 +57,7 @@ def create_analysis_result(
     db.add(analysis)
     db.commit()
     db.refresh(analysis)
+    return analysis
 
 def get_all_interviews(db: Session):
     return (
@@ -65,7 +66,17 @@ def get_all_interviews(db: Session):
         .all()
     )
 
-    return analysis
+def get_user_interviews(
+    db: Session,
+    user_id: int
+):
+    return (
+        db.query(Interview)
+        .filter(Interview.user_id == user_id)
+        .order_by(Interview.created_at.desc())
+        .all()
+    )
+    
 
 from .models import User
 
@@ -97,3 +108,13 @@ def create_user(
     db.refresh(user)
 
     return user
+
+def get_user_by_id(
+    db: Session,
+    user_id: int
+):
+    return (
+        db.query(User)
+        .filter(User.id == user_id)
+        .first()
+    )

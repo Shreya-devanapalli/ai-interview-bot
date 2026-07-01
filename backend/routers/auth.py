@@ -13,9 +13,18 @@ from database.crud import (
     get_user_by_email
 )
 
-from schemas.auth import UserRegister
+from utils.security import (
+    hash_password,
+    verify_password
+)
 
-from utils.security import hash_password
+from auth.jwt_handler import create_access_token
+
+from schemas.auth import (
+    UserRegister,
+    UserLogin,
+    LoginResponse
+)
 
 router = APIRouter(
     prefix="/auth",
@@ -55,3 +64,42 @@ def register(
         "message": "User registered successfully.",
         "user_id": new_user.id
     }
+
+@router.post(
+    "/login",
+    response_model=LoginResponse
+)
+def login(
+    user: UserLogin,
+    db: Session = Depends(get_db)
+):
+
+    db_user = get_user_by_email(
+        db,
+        user.email
+    )
+
+    if not db_user:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password."
+        )
+
+    if not verify_password(
+        user.password,
+        db_user.password_hash
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password."
+        )
+
+    access_token = create_access_token(
+        {
+            "sub": str(db_user.id)
+        }
+    )
+
+    return LoginResponse(
+        access_token=access_token
+    )
